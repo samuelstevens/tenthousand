@@ -70,6 +70,39 @@ class Config:
 
 
 @beartype.beartype
+def get_task(task: str, cfg: Config) -> pathlib.Path:
+    """
+    Get the task file path and verify it exists, suggesting alternatives if not found.
+
+    Arguments:
+        task: Which task to look for.
+        cfg: The configuration object.
+
+    Returns:
+        The path to the task file.
+
+    Exits with error if task doesn't exist and user doesn't want to create it.
+    """
+    task_file = cfg.root / f"{task}.csv"
+    
+    # Get list of existing tasks
+    existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
+    
+    if not task_file.exists() and existing_tasks:
+        # Find similar task names
+        matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
+        
+        print(f"Error: Task '{task}' not found", file=sys.stderr)
+        if matches:
+            print("\nDid you mean one of these?", file=sys.stderr)
+            for match in matches:
+                print(f"  {match}", file=sys.stderr)
+        sys.exit(1)
+        
+    return task_file
+
+
+@beartype.beartype
 def add(
     count: int,
     task: str,
@@ -88,8 +121,7 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    # If task is not already tracked and init_task is true, create a new task file. Otherwise, ask the user if they want to create a new task file with interaction.
-    task_file = cfg.root / f"{task}.csv"
+    task_file = get_task(task, cfg)
     task_file.parent.mkdir(parents=True, exist_ok=True)
     with locked(task_file, "a") as fd:
         # Check if file is empty (new file)
@@ -128,21 +160,7 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
         config: Where the config file is stored.
     """
     cfg = Config.from_path(config)
-    task_file = cfg.root / f"{task}.csv"
-
-    if not task_file.exists():
-        # Get list of existing tasks
-        existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
-
-        # Find similar task names
-        matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
-
-        print(f"Error: Task '{task}' not found", file=sys.stderr)
-        if matches:
-            print("\nDid you mean one of these?", file=sys.stderr)
-            for match in matches:
-                print(f"  {match}", file=sys.stderr)
-        sys.exit(1)
+    task_file = get_task(task, cfg)
 
     # Calculate total completed
     total = 0
