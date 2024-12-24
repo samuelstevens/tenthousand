@@ -89,7 +89,7 @@ def add(
     # If task is not already tracked and init_task is true, create a new task file. Otherwise, ask the user if they want to create a new task file with interaction.
     task_file = cfg.root / f"{task}.csv"
     task_file.parent.mkdir(parents=True, exist_ok=True)
-    with locked(task_file) as fd:
+    with locked(task_file, "a") as fd:
         # Check if file is empty (new file)
         fd.seek(0, 2)  # Seek to end
         if fd.tell() == 0:  # File is empty
@@ -115,9 +115,14 @@ def add(
 
 
 @beartype.beartype
-def progress():
+def progress(task: str, /, config: pathlib.Path = default_config_path):
     """
     Displays progress towards 10K.
+
+
+    Arguments:
+        task: Which task the user is making progress on.
+        config: Where the config file is stored.
     """
     breakpoint()
 
