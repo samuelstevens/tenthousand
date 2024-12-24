@@ -42,3 +42,11 @@ You can specify a different config file with the `--config` flag:
 ```bash
 10k add 5 pushups --config path/to/config.toml
 ```
+
+## Testing
+
+This will run a bunch of commands to see if anything breaks.
+
+```sh
+bash test/run.sh
+```
