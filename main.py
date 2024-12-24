@@ -70,18 +70,19 @@ class Config:
 
 
 @beartype.beartype
-def get_task(task: str, cfg: Config) -> pathlib.Path:
+def get_task(task: str, cfg: Config, *, init: bool = False) -> pathlib.Path:
     """
     Get the task file path and verify it exists, suggesting alternatives if not found.
 
     Arguments:
         task: Which task to look for.
         cfg: The configuration object.
+        init: Whether to initialize a new task file if it doesn't exist.
 
     Returns:
         The path to the task file.
 
-    Exits with error if task doesn't exist and user doesn't want to create it.
+    Exits with error if task doesn't exist and init is False.
     """
     task_file = cfg.root / f"{task}.csv"
     
@@ -89,23 +90,22 @@ def get_task(task: str, cfg: Config) -> pathlib.Path:
     existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
     
     if not task_file.exists():
-        if existing_tasks:
-            # Find similar task names
-            matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
-            
+        # Find similar task names
+        matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
+        
+        if init:
+            task_file.parent.mkdir(parents=True, exist_ok=True)
+            with locked(task_file, "w") as fd:
+                writer = csv.writer(fd)
+                writer.writerow(["timestamp", "count"])
+            print(f"Created new task file for '{task}'")
+        else:
             print(f"Error: Task '{task}' not found", file=sys.stderr)
             if matches:
                 print("\nDid you mean one of these?", file=sys.stderr)
                 for match in matches:
                     print(f"  {match}", file=sys.stderr)
             sys.exit(1)
-        else:
-            # No tasks exist yet, create the first one
-            task_file.parent.mkdir(parents=True, exist_ok=True)
-            with locked(task_file, "w") as fd:
-                writer = csv.writer(fd)
-                writer.writerow(["timestamp", "count"])
-            print(f"Created new task file for '{task}'")
     
     return task_file
 
@@ -129,7 +129,7 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    task_file = get_task(task, cfg)
+    task_file = get_task(task, cfg, init=True)
     task_file.parent.mkdir(parents=True, exist_ok=True)
     with locked(task_file, "a") as fd:
         # Check if file is empty (new file)
@@ -168,7 +168,7 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
         config: Where the config file is stored.
     """
     cfg = Config.from_path(config)
-    task_file = get_task(task, cfg)
+    task_file = get_task(task, cfg, init=False)
 
     # Calculate total completed
     total = 0
