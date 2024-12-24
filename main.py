@@ -148,6 +148,7 @@ def locked(filepath: pathlib.Path, mode: str = "w"):
                 yield state_fd
         finally:
             fcntl.flock(lock_fd.fileno(), fcntl.LOCK_UN)
+            lock_file.unlink()  # Delete the lock file
 
 
 if __name__ == "__main__":
