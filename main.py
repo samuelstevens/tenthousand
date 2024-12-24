@@ -158,26 +158,15 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    task_file = get_task(task, cfg, init=init_task)
-    task_file.parent.mkdir(parents=True, exist_ok=True)
-    with locked(task_file, "a") as fd:
-        # Check if file is empty (new file)
-        fd.seek(0, 2)  # Seek to end
-        if fd.tell() == 0:  # File is empty
-            if init_task:
-                print(f"Creating new task file for '{task}'")
-                writer = csv.writer(fd)
-                writer.writerow(["timestamp", "count"])
-            else:
-                response = input(
-                    f"Task '{task}' doesn't exist. Create it? [y/N] "
-                ).lower()
-                if response == "y":
-                    writer = csv.writer(fd)
-                    writer.writerow(["timestamp", "count"])
-                else:
-                    print("Aborted.", file=sys.stderr)
-                    sys.exit(1)
+    task_file = cfg.root / f"{task}.csv"
+    
+    if init_task or not task_file.exists():
+        if not init_task:
+            response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
+            if response != "y":
+                print("Aborted.", file=sys.stderr)
+                sys.exit(1)
+        Task.new(cfg, task)
 
         # Write a new row to the CSV file with the timestamp and count
         writer = csv.writer(fd)
