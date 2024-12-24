@@ -1,3 +1,4 @@
+#!/usr/bin/env -S uv run --script --quiet
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
@@ -165,7 +166,7 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
     )
 
     # Display results
-    print(f"\nProgress for {task}:")
+    print(f"Progress for {task}:")
     print(f"Completed: {total:,} / 10,000 ({(total / 10000) * 100:.1f}%)")
     print(f"Expected:  {expected:,} by today")
     if total < expected:
