@@ -134,33 +134,35 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
 
     # Calculate total completed
     total = 0
-    with open(task_file, 'r') as f:
+    with open(task_file, "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            total += int(row['count'])
+            total += int(row["count"])
 
     # Calculate progress metrics
     now = datetime.now(tz=timezone.utc)
     year_start = datetime(now.year, 1, 1, tzinfo=timezone.utc)
     year_end = datetime(now.year, 12, 31, tzinfo=timezone.utc)
-    
+
     days_elapsed = (now - year_start).days
     days_remaining = (year_end - now).days + 1  # Include today
     days_in_year = (year_end - year_start).days + 1
 
     expected = int((days_elapsed / days_in_year) * 10000)
-    daily_needed = (10000 - total) / days_remaining if days_remaining > 0 else float('inf')
+    daily_needed = (
+        (10000 - total) / days_remaining if days_remaining > 0 else float("inf")
+    )
 
     # Display results
     print(f"\nProgress for {task}:")
-    print(f"Completed: {total:,} / 10,000 actions ({(total/10000)*100:.1f}%)")
-    print(f"Expected:  {expected:,} actions by today")
+    print(f"Completed: {total:,} / 10,000 ({(total / 10000) * 100:.1f}%)")
+    print(f"Expected:  {expected:,} by today")
     if total < expected:
-        print(f"Behind by: {expected - total:,} actions")
+        print(f"Behind by: {expected - total:,}")
     else:
-        print(f"Ahead by:  {total - expected:,} actions")
-    print(f"\nTo reach 10,000 by year end:")
-    print(f"Need {daily_needed:.1f} actions per day for {days_remaining} days")
+        print(f"Ahead by:  {total - expected:,} ")
+    print("\nTo reach 10,000 by year end:")
+    print(f"Need {daily_needed:.0f} per day for {days_remaining} days")
 
 
 @contextlib.contextmanager
