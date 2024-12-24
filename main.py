@@ -70,14 +70,45 @@ class Config:
 
 
 @beartype.beartype
-def get_task(task: str, cfg: Config, *, init: bool = False) -> pathlib.Path:
+class TaskNotFoundError(Exception):
+    """Raised when attempting to load a task that doesn't exist"""
+
+
+@beartype.beartype
+@dataclasses.dataclass(frozen=True)
+class Task:
+    name: str
+    data: list[tuple[datetime.datetime, int]]
+
+    @classmethod
+    def new(cls, cfg: Config, name: str):
+        """Return a new task stored on disk."""
+        task_file = cfg.root / f"{name}.csv"
+        task_file.parent.mkdir(parents=True, exist_ok=True)
+
+        data = []
+        if not task_file.exists():
+            with locked(task_file, "w") as fd:
+                writer = csv.writer(fd)
+                writer.writerow(["timestamp", "count"])
+            print(f"Created new task file for '{name}'")
+        else:
+            with open(task_file, "r") as f:
+                reader = csv.DictReader(f)
+                for timestamp, count in reader:
+                    data.append((datetime.fromisoformat(timestamp), int(count)))
+
+        return cls(name, data)
+
+
+@beartype.beartype
+def get_task(task: str, cfg: Config) -> pathlib.Path:
     """
     Get the task file path and verify it exists, suggesting alternatives if not found.
 
     Arguments:
         task: Which task to look for.
         cfg: The configuration object.
-        init: Whether to initialize a new task file if it doesn't exist.
 
     Returns:
         The path to the task file.
@@ -85,15 +116,13 @@ def get_task(task: str, cfg: Config, *, init: bool = False) -> pathlib.Path:
     Exits with error if task doesn't exist and init is False.
     """
     task_file = cfg.root / f"{task}.csv"
-    
+
     # Get list of existing tasks
     existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
-    
+    matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
+
     if not task_file.exists():
-        # Find similar task names
-        matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
-        
-        if init:
+        if matches:
             task_file.parent.mkdir(parents=True, exist_ok=True)
             with locked(task_file, "w") as fd:
                 writer = csv.writer(fd)
@@ -101,12 +130,13 @@ def get_task(task: str, cfg: Config, *, init: bool = False) -> pathlib.Path:
             print(f"Created new task file for '{task}'")
         else:
             print(f"Error: Task '{task}' not found", file=sys.stderr)
+            # Find similar task names
             if matches:
                 print("\nDid you mean one of these?", file=sys.stderr)
                 for match in matches:
                     print(f"  {match}", file=sys.stderr)
             sys.exit(1)
-    
+
     return task_file
 
 
@@ -129,7 +159,7 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    task_file = get_task(task, cfg, init=True)
+    task_file = get_task(task, cfg, init=init_task)
     task_file.parent.mkdir(parents=True, exist_ok=True)
     with locked(task_file, "a") as fd:
         # Check if file is empty (new file)
