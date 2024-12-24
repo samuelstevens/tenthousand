@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 import sys
 import tomli
 import tomli_w
+import difflib
 
 import beartype
 import tyro
@@ -129,7 +130,17 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
     task_file = cfg.root / f"{task}.csv"
 
     if not task_file.exists():
+        # Get list of existing tasks
+        existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
+
+        # Find similar task names
+        matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
+
         print(f"Error: Task '{task}' not found", file=sys.stderr)
+        if matches:
+            print("\nDid you mean one of these?", file=sys.stderr)
+            for match in matches:
+                print(f"  {match}", file=sys.stderr)
         sys.exit(1)
 
     # Calculate total completed
