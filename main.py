@@ -87,9 +87,7 @@ def add(
 
     # If task is not already tracked and init_task is true, create a new task file. Otherwise, ask the user if they want to create a new task file with interaction.
     task_file = cfg.root / f"{task}.csv"
-
     task_file.parent.mkdir(parents=True, exist_ok=True)
-    
     with locked(task_file) as fd:
         # Check if file is empty (new file)
         fd.seek(0, 2)  # Seek to end
@@ -99,16 +97,18 @@ def add(
                 writer = csv.writer(fd)
                 writer.writerow(["timestamp", "count"])
             else:
-                response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
+                response = input(
+                    f"Task '{task}' doesn't exist. Create it? [y/N] "
+                ).lower()
                 if response == "y":
                     writer = csv.writer(fd)
                     writer.writerow(["timestamp", "count"])
                 else:
                     print("Aborted.", file=sys.stderr)
                     sys.exit(1)
-        
-        # Write a new row to the CSV file with the timestamp and the number of actions taken.
-        # TODO
+
+    # Write a new row to the CSV file with the timestamp and the number of actions taken.
+    # TODO
 
 
 @beartype.beartype
