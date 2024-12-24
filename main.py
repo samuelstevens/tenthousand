@@ -140,15 +140,18 @@ class Task:
 
     @classmethod
     def new(cls, cfg: Config, name: str) -> "Task":
-        """Create a new task file on disk.
+        """Create a new task file on disk or return existing task.
 
         Arguments:
             cfg: The configuration object
             name: Name of the task to create
 
         Returns:
-            A new Task instance with empty data
+            A Task instance - either new with empty data or existing task
         """
+        if cls.exists(cfg, name):
+            return cls.load(cfg, name)
+
         task_file = cfg.taskstore / f"{name}.csv"
         task_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -186,15 +189,12 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    if not Task.exists(cfg, task):
-        if not init_task:
-            response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
-            if response != "y":
-                print("Aborted.", file=sys.stderr)
-                sys.exit(1)
-        task_obj = Task.new(cfg, task)
-    else:
-        task_obj = Task.load(cfg, task)
+    if not Task.exists(cfg, task) and not init_task:
+        response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
+        if response != "y":
+            print("Aborted.", file=sys.stderr)
+            sys.exit(1)
+    task_obj = Task.new(cfg, task)
 
     task_obj.add(cfg, count)
 
