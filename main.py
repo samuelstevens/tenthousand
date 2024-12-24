@@ -22,6 +22,9 @@ import contextlib
 import dataclasses
 import fcntl
 import pathlib
+import sys
+import tomli
+import tomli_w
 
 import beartype
 import tyro
@@ -39,16 +42,20 @@ class Config:
     @classmethod
     def from_path(cls, path: pathlib.Path):
         try:
-            # Load config from TOML file.
-            pass
+            with open(path, "rb") as f:
+                config_dict = tomli.load(f)
+                return cls(**config_dict)
         except FileNotFoundError as err:
             if path == default_config_path:
-                # Inform the user that we are creating a new default config file here since it is missing.
-                # Write a TOML file to path with default Config values.
-                pass
+                print(f"Creating new config file at {path}")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                config_dict = dataclasses.asdict(cls())
+                with open(path, "wb") as f:
+                    tomli_w.dump(config_dict, f)
+                return cls()
             else:
-                # Print an error and sys.exit with an error code.
-                pass
+                print(f"Error: Config file not found at {path}", file=sys.stderr)
+                sys.exit(1)
 
 
 @beartype.beartype
