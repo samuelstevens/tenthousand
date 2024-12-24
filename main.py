@@ -72,6 +72,10 @@ class Config:
 @beartype.beartype
 class TaskNotFoundError(Exception):
     """Raised when attempting to load a task that doesn't exist"""
+    def __init__(self, task: str, matches: list[str]):
+        self.task = task
+        self.matches = matches
+        super().__init__(f"Task '{task}' not found")
 
 
 @beartype.beartype
@@ -79,6 +83,39 @@ class TaskNotFoundError(Exception):
 class Task:
     name: str
     data: list[tuple[datetime.datetime, int]]
+
+    @classmethod
+    def load(cls, cfg: Config, name: str) -> "Task":
+        """Load an existing task from disk.
+        
+        Arguments:
+            cfg: The configuration object
+            name: Name of the task to load
+            
+        Returns:
+            The loaded Task
+            
+        Raises:
+            TaskNotFoundError: If the task doesn't exist
+        """
+        task_file = cfg.root / f"{name}.csv"
+        
+        if not task_file.exists():
+            # Get list of similar tasks for the error message
+            existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
+            matches = difflib.get_close_matches(name, existing_tasks, n=3, cutoff=0.6)
+            raise TaskNotFoundError(name, matches)
+
+        data = []
+        with open(task_file, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                data.append((
+                    datetime.fromisoformat(row["timestamp"]), 
+                    int(row["count"])
+                ))
+
+        return cls(name, data)
 
     @classmethod
     def new(cls, cfg: Config, name: str):
@@ -95,8 +132,11 @@ class Task:
         else:
             with open(task_file, "r") as f:
                 reader = csv.DictReader(f)
-                for timestamp, count in reader:
-                    data.append((datetime.fromisoformat(timestamp), int(count)))
+                for row in reader:
+                    data.append((
+                        datetime.fromisoformat(row["timestamp"]), 
+                        int(row["count"])
+                    ))
 
         return cls(name, data)
 
@@ -198,14 +238,19 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
         config: Where the config file is stored.
     """
     cfg = Config.from_path(config)
-    task_file = get_task(task, cfg, init=False)
+    
+    try:
+        task_obj = Task.load(cfg, task)
+    except TaskNotFoundError as e:
+        print(f"Error: Task '{e.task}' not found", file=sys.stderr)
+        if e.matches:
+            print("\nDid you mean one of these?", file=sys.stderr)
+            for match in e.matches:
+                print(f"  {match}", file=sys.stderr)
+        sys.exit(1)
 
     # Calculate total completed
-    total = 0
-    with open(task_file, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            total += int(row["count"])
+    total = sum(count for _, count in task_obj.data)
 
     # Calculate progress metrics
     now = datetime.now(tz=timezone.utc)
