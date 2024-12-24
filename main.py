@@ -80,7 +80,7 @@ class TaskNotFoundError(Exception):
 
 
 @beartype.beartype
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Task:
     name: str
     data: list[tuple[datetime.datetime, int]]
@@ -112,7 +112,7 @@ class Task:
             reader = csv.DictReader(f)
             for row in reader:
                 data.append((
-                    datetime.fromisoformat(row["timestamp"]),
+                    datetime.datetime.fromisoformat(row["timestamp"]),
                     int(row["count"]),
                 ))
 
@@ -121,11 +121,11 @@ class Task:
     @staticmethod
     def exists(cfg: Config, name: str) -> bool:
         """Check if a task exists.
-        
+
         Arguments:
             cfg: The configuration object
             name: Name of the task to check
-            
+
         Returns:
             True if the task exists, False otherwise
         """
@@ -135,22 +135,30 @@ class Task:
     @classmethod
     def new(cls, cfg: Config, name: str) -> "Task":
         """Create a new task file on disk.
-        
+
         Arguments:
             cfg: The configuration object
             name: Name of the task to create
-            
+
         Returns:
             A new Task instance with empty data
         """
         task_file = cfg.root / f"{name}.csv"
         task_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with locked(task_file, "w") as fd:
             writer = csv.writer(fd)
             writer.writerow(["timestamp", "count"])
-            
+
         return cls(name, [])
+
+    def add(self, cfg: Config, count: int):
+        """ """
+        task_file = cfg.root / f"{self.name}.csv"
+        with locked(task_file, "a") as fd:
+            writer = csv.writer(fd)
+            timestamp = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+            writer.writerow([timestamp, count])
 
 
 @beartype.beartype
@@ -172,20 +180,17 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    if init_task or not Task.exists(cfg, task):
+    if not Task.exists(cfg, task):
         if not init_task:
             response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
             if response != "y":
                 print("Aborted.", file=sys.stderr)
                 sys.exit(1)
-        Task.new(cfg, task)
-        
-    # Write a new row to the CSV file with the timestamp and count
-    task_file = cfg.root / f"{task}.csv"
-    with locked(task_file, "a") as fd:
-        writer = csv.writer(fd)
-        timestamp = datetime.now(tz=datetime.timezone.utc).isoformat()
-        writer.writerow([timestamp, count])
+        task_obj = Task.new(cfg, task)
+    else:
+        task_obj = Task.load(cfg, task)
+
+    task_obj.add(cfg, count)
 
 
 @beartype.beartype
@@ -215,9 +220,9 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
     total = sum(count for _, count in task_obj.data)
 
     # Calculate progress metrics
-    now = datetime.now(tz=datetime.timezone.utc)
-    year_start = datetime(now.year, 1, 1, tzinfo=datetime.timezone.utc)
-    year_end = datetime(now.year, 12, 31, tzinfo=datetime.timezone.utc)
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    year_start = datetime.datetime(now.year, 1, 1, tzinfo=datetime.timezone.utc)
+    year_end = datetime.datetime(now.year, 12, 31, tzinfo=datetime.timezone.utc)
 
     days_elapsed = (now - year_start).days
     days_remaining = (year_end - now).days + 1  # Include today
