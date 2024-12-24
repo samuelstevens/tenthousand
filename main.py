@@ -52,10 +52,10 @@ class Config:
                 print(f"Creating new config file at {path}")
                 path.parent.mkdir(parents=True, exist_ok=True)
                 cfg = cls()
-                config_dict = dataclasses.asdict(cfg)
+                config_dict = {"root": str(cfg.root)}
                 with open(path, "wb") as f:
                     tomli_w.dump(config_dict, f)
-                return cls
+                return cfg
             else:
                 print(f"Error: Config file not found at {path}", file=sys.stderr)
                 sys.exit(1)
