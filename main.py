@@ -2,6 +2,8 @@
 # requires-python = ">=3.13"
 # dependencies = [
 #     "beartype",
+#     "tomli",
+#     "tomli-w",
 #     "tyro",
 # ]
 # ///
@@ -37,7 +39,7 @@ default_config_path = pathlib.Path.home() / f".local/config/{scriptname}/config.
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Config:
-    root: pathlib.Path = pathlib.Path.hom() / f".local/state/{scriptname}"
+    root: pathlib.Path = pathlib.Path.home() / f".local/state/{scriptname}"
 
     @classmethod
     def from_path(cls, path: pathlib.Path):
@@ -45,14 +47,15 @@ class Config:
             with open(path, "rb") as f:
                 config_dict = tomli.load(f)
                 return cls(**config_dict)
-        except FileNotFoundError as err:
+        except FileNotFoundError:
             if path == default_config_path:
                 print(f"Creating new config file at {path}")
                 path.parent.mkdir(parents=True, exist_ok=True)
-                config_dict = dataclasses.asdict(cls())
+                cfg = cls()
+                config_dict = dataclasses.asdict(cfg)
                 with open(path, "wb") as f:
                     tomli_w.dump(config_dict, f)
-                return cls()
+                return cls
             else:
                 print(f"Error: Config file not found at {path}", file=sys.stderr)
                 sys.exit(1)
