@@ -46,6 +46,8 @@ class Config:
         try:
             with open(path, "rb") as f:
                 config_dict = tomli.load(f)
+                # Convert string path back to Path object
+                config_dict["root"] = pathlib.Path(config_dict["root"])
                 return cls(**config_dict)
         except FileNotFoundError:
             if path == default_config_path:
