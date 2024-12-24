@@ -24,6 +24,7 @@ import contextlib
 import dataclasses
 import fcntl
 import pathlib
+import csv
 import sys
 import tomli
 import tomli_w
@@ -91,12 +92,16 @@ def add(
         if init_task:
             print(f"Creating new task file for '{task}'")
             task_file.parent.mkdir(parents=True, exist_ok=True)
-            task_file.touch()
+            with locked(task_file) as fd:
+                writer = csv.writer(fd)
+                writer.writerow(["timestamp", "count"])
         else:
             response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
             if response == "y":
                 task_file.parent.mkdir(parents=True, exist_ok=True)
-                task_file.touch()
+                with locked(task_file) as fd:
+                    writer = csv.writer(fd)
+                    writer.writerow(["timestamp", "count"])
             else:
                 print("Aborted.", file=sys.stderr)
                 sys.exit(1)
