@@ -118,6 +118,20 @@ class Task:
 
         return cls(name, data)
 
+    @staticmethod
+    def exists(cfg: Config, name: str) -> bool:
+        """Check if a task exists.
+        
+        Arguments:
+            cfg: The configuration object
+            name: Name of the task to check
+            
+        Returns:
+            True if the task exists, False otherwise
+        """
+        task_file = cfg.root / f"{name}.csv"
+        return task_file.exists()
+
     @classmethod
     def new(cls, cfg: Config, name: str) -> "Task":
         """Create a new task file on disk.
@@ -158,9 +172,7 @@ def add(
     """
     cfg = Config.from_path(config)
 
-    task_file = cfg.root / f"{task}.csv"
-    
-    if init_task or not task_file.exists():
+    if init_task or not Task.exists(cfg, task):
         if not init_task:
             response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
             if response != "y":
@@ -169,6 +181,7 @@ def add(
         Task.new(cfg, task)
         
     # Write a new row to the CSV file with the timestamp and count
+    task_file = cfg.root / f"{task}.csv"
     with locked(task_file, "a") as fd:
         writer = csv.writer(fd)
         timestamp = datetime.now(tz=datetime.timezone.utc).isoformat()
