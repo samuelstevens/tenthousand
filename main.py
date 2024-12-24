@@ -52,7 +52,9 @@ class Config:
                 print(f"Creating new config file at {path}")
                 path.parent.mkdir(parents=True, exist_ok=True)
                 cfg = cls()
-                config_dict = {"root": str(cfg.root)}
+                config_dict = dataclasses.asdict(cfg)
+                # Convert Path objects to strings for TOML serialization
+                config_dict["root"] = str(config_dict["root"])
                 with open(path, "wb") as f:
                     tomli_w.dump(config_dict, f)
                 return cfg
