@@ -44,6 +44,12 @@ default_config_path = pathlib.Path.home() / f".config/{scriptname}/config.toml"
 @dataclasses.dataclass(frozen=True)
 class Config:
     root: pathlib.Path = pathlib.Path.home() / f".local/state/{scriptname}"
+    year: int = datetime.datetime.now().year
+
+    @property
+    def state_dir(self) -> pathlib.Path:
+        """Directory containing task state files for the configured year."""
+        return self.root / str(self.year)
 
     @classmethod
     def from_path(cls, path: pathlib.Path):
@@ -99,11 +105,11 @@ class Task:
         Raises:
             TaskNotFoundError: If the task doesn't exist
         """
-        task_file = cfg.root / f"{name}.csv"
+        task_file = cfg.state_dir / f"{name}.csv"
 
         if not task_file.exists():
             # Get list of similar tasks for the error message
-            existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
+            existing_tasks = [f.stem for f in cfg.state_dir.glob("*.csv")]
             matches = difflib.get_close_matches(name, existing_tasks, n=3, cutoff=0.6)
             raise TaskNotFoundError(name, matches)
 
@@ -129,7 +135,7 @@ class Task:
         Returns:
             True if the task exists, False otherwise
         """
-        task_file = cfg.root / f"{name}.csv"
+        task_file = cfg.state_dir / f"{name}.csv"
         return task_file.exists()
 
     @classmethod
@@ -143,7 +149,7 @@ class Task:
         Returns:
             A new Task instance with empty data
         """
-        task_file = cfg.root / f"{name}.csv"
+        task_file = cfg.state_dir / f"{name}.csv"
         task_file.parent.mkdir(parents=True, exist_ok=True)
 
         with locked(task_file, "w") as fd:
@@ -154,7 +160,7 @@ class Task:
 
     def add(self, cfg: Config, count: int):
         """ """
-        task_file = cfg.root / f"{self.name}.csv"
+        task_file = cfg.state_dir / f"{self.name}.csv"
         with locked(task_file, "a") as fd:
             writer = csv.writer(fd)
             timestamp = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
