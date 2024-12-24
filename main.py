@@ -26,7 +26,7 @@ import dataclasses
 import fcntl
 import pathlib
 import csv
-from datetime import datetime, timezone
+import datetime
 import sys
 import tomli
 import tomli_w
@@ -72,6 +72,7 @@ class Config:
 @beartype.beartype
 class TaskNotFoundError(Exception):
     """Raised when attempting to load a task that doesn't exist"""
+
     def __init__(self, task: str, matches: list[str]):
         self.task = task
         self.matches = matches
@@ -87,19 +88,19 @@ class Task:
     @classmethod
     def load(cls, cfg: Config, name: str) -> "Task":
         """Load an existing task from disk.
-        
+
         Arguments:
             cfg: The configuration object
             name: Name of the task to load
-            
+
         Returns:
             The loaded Task
-            
+
         Raises:
             TaskNotFoundError: If the task doesn't exist
         """
         task_file = cfg.root / f"{name}.csv"
-        
+
         if not task_file.exists():
             # Get list of similar tasks for the error message
             existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
@@ -111,8 +112,8 @@ class Task:
             reader = csv.DictReader(f)
             for row in reader:
                 data.append((
-                    datetime.fromisoformat(row["timestamp"]), 
-                    int(row["count"])
+                    datetime.fromisoformat(row["timestamp"]),
+                    int(row["count"]),
                 ))
 
         return cls(name, data)
@@ -134,50 +135,11 @@ class Task:
                 reader = csv.DictReader(f)
                 for row in reader:
                     data.append((
-                        datetime.fromisoformat(row["timestamp"]), 
-                        int(row["count"])
+                        datetime.fromisoformat(row["timestamp"]),
+                        int(row["count"]),
                     ))
 
         return cls(name, data)
-
-
-@beartype.beartype
-def get_task(task: str, cfg: Config) -> pathlib.Path:
-    """
-    Get the task file path and verify it exists, suggesting alternatives if not found.
-
-    Arguments:
-        task: Which task to look for.
-        cfg: The configuration object.
-
-    Returns:
-        The path to the task file.
-
-    Exits with error if task doesn't exist and init is False.
-    """
-    task_file = cfg.root / f"{task}.csv"
-
-    # Get list of existing tasks
-    existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
-    matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
-
-    if not task_file.exists():
-        if matches:
-            task_file.parent.mkdir(parents=True, exist_ok=True)
-            with locked(task_file, "w") as fd:
-                writer = csv.writer(fd)
-                writer.writerow(["timestamp", "count"])
-            print(f"Created new task file for '{task}'")
-        else:
-            print(f"Error: Task '{task}' not found", file=sys.stderr)
-            # Find similar task names
-            if matches:
-                print("\nDid you mean one of these?", file=sys.stderr)
-                for match in matches:
-                    print(f"  {match}", file=sys.stderr)
-            sys.exit(1)
-
-    return task_file
 
 
 @beartype.beartype
@@ -222,7 +184,7 @@ def add(
 
         # Write a new row to the CSV file with the timestamp and count
         writer = csv.writer(fd)
-        timestamp = datetime.now(tz=timezone.utc).isoformat()
+        timestamp = datetime.now(tz=datetime.timezone.utc).isoformat()
         writer.writerow([timestamp, count])
 
 
@@ -238,7 +200,7 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
         config: Where the config file is stored.
     """
     cfg = Config.from_path(config)
-    
+
     try:
         task_obj = Task.load(cfg, task)
     except TaskNotFoundError as e:
@@ -253,9 +215,9 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
     total = sum(count for _, count in task_obj.data)
 
     # Calculate progress metrics
-    now = datetime.now(tz=timezone.utc)
-    year_start = datetime(now.year, 1, 1, tzinfo=timezone.utc)
-    year_end = datetime(now.year, 12, 31, tzinfo=timezone.utc)
+    now = datetime.now(tz=datetime.timezone.utc)
+    year_start = datetime(now.year, 1, 1, tzinfo=datetime.timezone.utc)
+    year_end = datetime(now.year, 12, 31, tzinfo=datetime.timezone.utc)
 
     days_elapsed = (now - year_start).days
     days_remaining = (year_end - now).days + 1  # Include today
