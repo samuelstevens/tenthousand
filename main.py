@@ -167,8 +167,9 @@ def add(
                 print("Aborted.", file=sys.stderr)
                 sys.exit(1)
         Task.new(cfg, task)
-
-        # Write a new row to the CSV file with the timestamp and count
+        
+    # Write a new row to the CSV file with the timestamp and count
+    with locked(task_file, "a") as fd:
         writer = csv.writer(fd)
         timestamp = datetime.now(tz=datetime.timezone.utc).isoformat()
         writer.writerow([timestamp, count])
