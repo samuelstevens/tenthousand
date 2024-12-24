@@ -108,10 +108,10 @@ def add(
                     print("Aborted.", file=sys.stderr)
                     sys.exit(1)
 
-    # Write a new row to the CSV file with the timestamp and count
-    writer = csv.writer(fd)
-    timestamp = datetime.now(tz=datetime.UTC).isoformat()
-    writer.writerow([timestamp, count])
+        # Write a new row to the CSV file with the timestamp and count
+        writer = csv.writer(fd)
+        timestamp = datetime.now(tz=datetime.UTC).isoformat()
+        writer.writerow([timestamp, count])
 
 
 @beartype.beartype
