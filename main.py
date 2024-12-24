@@ -25,6 +25,7 @@ import dataclasses
 import fcntl
 import pathlib
 import csv
+from datetime import datetime
 import sys
 import tomli
 import tomli_w
@@ -107,8 +108,10 @@ def add(
                     print("Aborted.", file=sys.stderr)
                     sys.exit(1)
 
-    # Write a new row to the CSV file with the timestamp and the number of actions taken.
-    # TODO
+    # Write a new row to the CSV file with the timestamp and count
+    writer = csv.writer(fd)
+    timestamp = datetime.now(tz=datetime.UTC).isoformat()
+    writer.writerow([timestamp, count])
 
 
 @beartype.beartype
