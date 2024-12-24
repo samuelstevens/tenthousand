@@ -33,7 +33,7 @@ import tyro
 
 scriptname = "tenthousand"
 
-default_config_path = pathlib.Path.home() / f".local/config/{scriptname}/config.toml"
+default_config_path = pathlib.Path.home() / f".config/{scriptname}/config.toml"
 
 
 @beartype.beartype
@@ -82,7 +82,7 @@ def add(
 
     # If task is not already tracked and init_task is true, create a new task file. Otherwise, ask the user if they want to create a new task file with interaction.
     task_file = cfg.root / f"{task}.csv"
-    
+
     if not task_file.exists():
         if init_task:
             print(f"Creating new task file for '{task}'")
@@ -90,7 +90,7 @@ def add(
             task_file.touch()
         else:
             response = input(f"Task '{task}' doesn't exist. Create it? [y/N] ").lower()
-            if response == 'y':
+            if response == "y":
                 task_file.parent.mkdir(parents=True, exist_ok=True)
                 task_file.touch()
             else:
