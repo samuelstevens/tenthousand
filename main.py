@@ -240,15 +240,15 @@ def progress(task: str, /, config: pathlib.Path = default_config_path):
     )
 
     # Display results
-    print(f"Progress for {task}:")
-    print(f"Completed: {total:,} / 10,000 ({(total / 10000) * 100:.1f}%)")
-    print(f"Expected:  {expected:,} by today")
+    print(f"{task} progress in {cfg.year}:")
+    print(f"You've completed {total:,} out of 10,000 ({(total / 10000) * 100:.1f}%)")
+    print(f"Expected progress by today: {expected:,}")
     if total < expected:
-        print(f"Behind by: {expected - total:,}")
+        print(f"You're {expected - total:,} behind schedule")
     else:
-        print(f"Ahead by:  {total - expected:,} ")
-    print("\nTo reach 10,000 by year end:")
-    print(f"Need {daily_needed:.0f} per day for {days_remaining} days")
+        print(f"You're {total - expected:,} ahead of schedule")
+    print(f"\nTo reach your goal by December 31st, {cfg.year}:")
+    print(f"You need to do {daily_needed:.0f} per day for the next {days_remaining} days")
 
 
 @contextlib.contextmanager
