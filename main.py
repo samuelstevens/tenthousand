@@ -119,27 +119,24 @@ class Task:
         return cls(name, data)
 
     @classmethod
-    def new(cls, cfg: Config, name: str):
-        """Return a new task stored on disk."""
+    def new(cls, cfg: Config, name: str) -> "Task":
+        """Create a new task file on disk.
+        
+        Arguments:
+            cfg: The configuration object
+            name: Name of the task to create
+            
+        Returns:
+            A new Task instance with empty data
+        """
         task_file = cfg.root / f"{name}.csv"
         task_file.parent.mkdir(parents=True, exist_ok=True)
-
-        data = []
-        if not task_file.exists():
-            with locked(task_file, "w") as fd:
-                writer = csv.writer(fd)
-                writer.writerow(["timestamp", "count"])
-            print(f"Created new task file for '{name}'")
-        else:
-            with open(task_file, "r") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    data.append((
-                        datetime.fromisoformat(row["timestamp"]),
-                        int(row["count"]),
-                    ))
-
-        return cls(name, data)
+        
+        with locked(task_file, "w") as fd:
+            writer = csv.writer(fd)
+            writer.writerow(["timestamp", "count"])
+            
+        return cls(name, [])
 
 
 @beartype.beartype
