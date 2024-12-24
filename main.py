@@ -88,17 +88,25 @@ def get_task(task: str, cfg: Config) -> pathlib.Path:
     # Get list of existing tasks
     existing_tasks = [f.stem for f in cfg.root.glob("*.csv")]
     
-    if not task_file.exists() and existing_tasks:
-        # Find similar task names
-        matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
-        
-        print(f"Error: Task '{task}' not found", file=sys.stderr)
-        if matches:
-            print("\nDid you mean one of these?", file=sys.stderr)
-            for match in matches:
-                print(f"  {match}", file=sys.stderr)
-        sys.exit(1)
-        
+    if not task_file.exists():
+        if existing_tasks:
+            # Find similar task names
+            matches = difflib.get_close_matches(task, existing_tasks, n=3, cutoff=0.6)
+            
+            print(f"Error: Task '{task}' not found", file=sys.stderr)
+            if matches:
+                print("\nDid you mean one of these?", file=sys.stderr)
+                for match in matches:
+                    print(f"  {match}", file=sys.stderr)
+            sys.exit(1)
+        else:
+            # No tasks exist yet, create the first one
+            task_file.parent.mkdir(parents=True, exist_ok=True)
+            with locked(task_file, "w") as fd:
+                writer = csv.writer(fd)
+                writer.writerow(["timestamp", "count"])
+            print(f"Created new task file for '{task}'")
+    
     return task_file
 
 
