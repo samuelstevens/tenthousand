@@ -25,7 +25,7 @@ import dataclasses
 import fcntl
 import pathlib
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 import sys
 import tomli
 import tomli_w
@@ -110,7 +110,7 @@ def add(
 
         # Write a new row to the CSV file with the timestamp and count
         writer = csv.writer(fd)
-        timestamp = datetime.now(tz=datetime.UTC).isoformat()
+        timestamp = datetime.now(tz=timezone.utc).isoformat()
         writer.writerow([timestamp, count])
 
 
